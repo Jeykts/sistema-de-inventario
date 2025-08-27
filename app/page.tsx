@@ -33,7 +33,17 @@ function DashboardContent() {
   )
   const [scanResult, setScanResult] = useState<{ code: string; tool: Tool | null } | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
+  // Usuario mock para pruebas (sin login)
+  const mockUser = {
+    id: "1",
+    name: "Usuario de Prueba",
+    email: "test@colegio.edu",
+    role: "admin" as const,
+    createdAt: new Date().toISOString()
+  }
+  
   const { user, logout } = useAuth()
+  const currentUser = user || mockUser // Usar usuario mock si no hay usuario autenticado
 
   useEffect(() => {
     initializeData()
@@ -77,7 +87,7 @@ function DashboardContent() {
   }
 
   const handleScanResultAction = async (action: "borrow" | "return" | "maintenance") => {
-    if (!scanResult?.tool || !user) return
+    if (!scanResult?.tool || !currentUser) return
 
     setIsProcessing(true)
     console.log(`[v0] Processing ${action} for tool ${scanResult.tool.id}`)
@@ -108,7 +118,7 @@ function DashboardContent() {
         const newLoan: Loan = {
           id: Date.now().toString(),
           toolId: scanResult.tool.id,
-          userId: user.id,
+          userId: currentUser.id,
           borrowedAt: new Date().toISOString(),
           status: "active",
           notes: `Prestado via QR Scanner`,
@@ -160,12 +170,10 @@ function DashboardContent() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              {user && (
-                <div className="text-right">
-                  <p className="text-sm font-medium text-foreground">{user.name}</p>
-                  <p className="text-xs text-muted-foreground capitalize">{user.role}</p>
-                </div>
-              )}
+              <div className="text-right">
+                <p className="text-sm font-medium text-foreground">{currentUser.name}</p>
+                <p className="text-xs text-muted-foreground capitalize">{currentUser.role}</p>
+              </div>
               <Button variant="outline" size="sm">
                 <Settings className="w-4 h-4 mr-2" />
                 Configuración
@@ -252,11 +260,11 @@ function DashboardContent() {
       )}
 
       {/* QR Scan Result Modal */}
-      {scanResult && user && (
+      {scanResult && (
         <QRScanResult
           scannedCode={scanResult.code}
           tool={scanResult.tool}
-          currentUser={user}
+          currentUser={currentUser}
           onAction={handleScanResultAction}
           onClose={() => setScanResult(null)}
           isProcessing={isProcessing}

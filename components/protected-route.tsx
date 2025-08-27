@@ -12,6 +12,11 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
+  // Temporalmente deshabilitado para pruebas - acceso directo sin login
+  return <>{children}</>
+  
+  /* 
+  // Código original del login (comentado para pruebas)
   const { user, isLoading } = useAuth()
 
   if (isLoading) {
@@ -43,4 +48,5 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
   }
 
   return <>{children}</>
+  */
 }
