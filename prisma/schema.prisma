@@ -1,0 +1,82 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(PROFESOR)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  loans Loan[]
+
+  @@map("users")
+}
+
+model Tool {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  category    String
+  qrCode      String   @unique
+  status      ToolStatus @default(AVAILABLE)
+  location    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  loans Loan[]
+
+  @@map("tools")
+}
+
+model Loan {
+  id         String   @id @default(cuid())
+  toolId     String
+  userId     String
+  borrowedAt DateTime @default(now())
+  returnedAt DateTime?
+  status     LoanStatus @default(ACTIVE)
+  notes      String?
+
+  tool Tool @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("loans")
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String
+  color       String
+
+  @@map("categories")
+}
+
+enum Role {
+  ADMIN
+  PROFESOR
+}
+
+enum ToolStatus {
+  AVAILABLE
+  BORROWED
+  MAINTENANCE
+}
+
+enum LoanStatus {
+  ACTIVE
+  RETURNED
+  OVERDUE
+}
