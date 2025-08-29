@@ -21,6 +21,8 @@ import { RecentActivity } from "@/components/recent-activity"
 import { QRScanner } from "@/components/qr-scanner"
 import { QRGenerator } from "@/components/qr-generator"
 import { QRScanResult } from "@/components/qr-scan-result"
+import { AddToolModal } from "@/components/add-tool-modal"
+import { LoansModal } from "@/components/loans-modal"
 
 function DashboardContent() {
   const [tools, setTools] = useState<Tool[]>([])
@@ -33,16 +35,19 @@ function DashboardContent() {
   )
   const [scanResult, setScanResult] = useState<{ code: string; tool: Tool | null } | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
-  // Usuario mock para pruebas (sin login)
+  const [showAddToolModal, setShowAddToolModal] = useState(false)
+  const [showLoansModal, setShowLoansModal] = useState(false)
+  const { user, logout, error, clearError } = useAuth()
+  
+  // Usuario mock para desarrollo/pruebas
   const mockUser = {
-    id: "1",
-    name: "Usuario de Prueba",
-    email: "test@colegio.edu",
+    id: "dev-1",
+    name: "Usuario de Desarrollo",
+    email: "dev@colegio.edu",
     role: "admin" as const,
     createdAt: new Date().toISOString()
   }
   
-  const { user, logout } = useAuth()
   const currentUser = user || mockUser // Usar usuario mock si no hay usuario autenticado
 
   useEffect(() => {
@@ -51,16 +56,16 @@ function DashboardContent() {
   }, [])
 
   const loadData = () => {
-    setTools(getStoredData<Tool>(STORAGE_KEYS.TOOLS))
-    setLoans(getStoredData<Loan>(STORAGE_KEYS.LOANS))
-    setUsers(getStoredData<User>(STORAGE_KEYS.USERS))
-    setCategories(getStoredData<Category>(STORAGE_KEYS.CATEGORIES))
+    setTools(getStoredData(STORAGE_KEYS.TOOLS))
+    setLoans(getStoredData(STORAGE_KEYS.LOANS))
+    setUsers(getStoredData(STORAGE_KEYS.USERS))
+    setCategories(getStoredData(STORAGE_KEYS.CATEGORIES))
   }
 
   const handleQRScan = (scannedCode: string) => {
     console.log(`[v0] QR Code scanned: ${scannedCode}`)
 
-    const tool = tools.find((t) => t.qrCode === scannedCode)
+    const tool = tools.find((t) => t.qrCode === scannedCode) || null
     setScanResult({ code: scannedCode, tool })
     setShowQRScanner(false)
   }
@@ -154,6 +159,49 @@ function DashboardContent() {
     }
   }
 
+  const handleAddTool = (newToolData: Omit<Tool, "id" | "createdAt" | "updatedAt">) => {
+    const newTool: Tool = {
+      ...newToolData,
+      id: Date.now().toString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+
+    const updatedTools = [...tools, newTool]
+    setStoredData(STORAGE_KEYS.TOOLS, updatedTools)
+    setTools(updatedTools)
+    
+    console.log(`[v0] New tool added: ${newTool.name}`)
+  }
+
+  const handleReturnTool = (loanId: string) => {
+    const updatedLoans = loans.map((loan) => {
+      if (loan.id === loanId && loan.status === "active") {
+        return {
+          ...loan,
+          returnedAt: new Date().toISOString(),
+          status: "returned" as const,
+        }
+      }
+      return loan
+    })
+
+    const updatedTools = tools.map((tool) => {
+      const loan = loans.find(l => l.id === loanId)
+      if (loan && tool.id === loan.toolId) {
+        return { ...tool, status: "available" as const, updatedAt: new Date().toISOString() }
+      }
+      return tool
+    })
+
+    setStoredData(STORAGE_KEYS.LOANS, updatedLoans)
+    setStoredData(STORAGE_KEYS.TOOLS, updatedTools)
+    setLoans(updatedLoans)
+    setTools(updatedTools)
+
+    console.log(`[v0] Tool returned via loans modal: ${loanId}`)
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -207,7 +255,11 @@ function DashboardContent() {
             </div>
           </Button>
 
-          <Button className="h-16 text-left justify-start bg-transparent" variant="outline">
+          <Button 
+            className="h-16 text-left justify-start bg-transparent" 
+            variant="outline"
+            onClick={() => setShowAddToolModal(true)}
+          >
             <Plus className="w-6 h-6 mr-3 text-accent" />
             <div>
               <div className="font-medium">Agregar Herramienta</div>
@@ -215,7 +267,11 @@ function DashboardContent() {
             </div>
           </Button>
 
-          <Button className="h-16 text-left justify-start bg-transparent" variant="outline">
+          <Button 
+            className="h-16 text-left justify-start bg-transparent" 
+            variant="outline"
+            onClick={() => setShowLoansModal(true)}
+          >
             <BookOpen className="w-6 h-6 mr-3 text-orange-600" />
             <div>
               <div className="font-medium">Ver Préstamos</div>
@@ -270,6 +326,24 @@ function DashboardContent() {
           isProcessing={isProcessing}
         />
       )}
+
+      {/* Add Tool Modal */}
+      <AddToolModal
+        isOpen={showAddToolModal}
+        onClose={() => setShowAddToolModal(false)}
+        onAddTool={handleAddTool}
+        categories={categories}
+      />
+
+      {/* Loans Modal */}
+      <LoansModal
+        isOpen={showLoansModal}
+        onClose={() => setShowLoansModal(false)}
+        loans={loans}
+        tools={tools}
+        users={users}
+        onReturnTool={handleReturnTool}
+      />
     </div>
   )
 }
