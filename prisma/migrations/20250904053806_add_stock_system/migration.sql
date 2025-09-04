@@ -1,0 +1,6 @@
+-- AlterTable
+ALTER TABLE `loans` ADD COLUMN `quantity` INTEGER NOT NULL DEFAULT 1;
+
+-- AlterTable
+ALTER TABLE `tools` ADD COLUMN `availableQuantity` INTEGER NOT NULL DEFAULT 1,
+    ADD COLUMN `quantity` INTEGER NOT NULL DEFAULT 1;

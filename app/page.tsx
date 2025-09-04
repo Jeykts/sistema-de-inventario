@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Package, QrCode, BookOpen, Settings, LogOut, Plus } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Package, QrCode, BookOpen, Settings, LogOut, Plus, Search } from "lucide-react"
 import {
   initializeData,
   getStoredData,
@@ -23,6 +24,7 @@ import { QRGenerator } from "@/components/qr-generator"
 import { QRScanResult } from "@/components/qr-scan-result"
 import { AddToolModal } from "@/components/add-tool-modal"
 import { LoansModal } from "@/components/loans-modal"
+import { BulkLoanModal } from "@/components/bulk-loan-modal"
 
 function DashboardContent() {
   const [tools, setTools] = useState<Tool[]>([])
@@ -37,6 +39,8 @@ function DashboardContent() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [showAddToolModal, setShowAddToolModal] = useState(false)
   const [showLoansModal, setShowLoansModal] = useState(false)
+  const [showBulkLoanModal, setShowBulkLoanModal] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
   const { user, logout, error, clearError } = useAuth()
   
   // Usuario mock para desarrollo/pruebas
@@ -49,6 +53,14 @@ function DashboardContent() {
   }
   
   const currentUser = user || mockUser // Usar usuario mock si no hay usuario autenticado
+
+  // Filtrar herramientas basado en la búsqueda
+  const filteredTools = tools.filter((tool) =>
+    tool.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    tool.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    tool.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    tool.description?.toLowerCase().includes(searchQuery.toLowerCase())
+  )
 
   useEffect(() => {
     initializeData()
@@ -202,6 +214,48 @@ function DashboardContent() {
     console.log(`[v0] Tool returned via loans modal: ${loanId}`)
   }
 
+  const handleBulkLoan = (selectedTools: Tool[]) => {
+    if (!currentUser || selectedTools.length === 0) return
+
+    console.log(`[v0] Processing bulk loan for ${selectedTools.length} tools`)
+
+    try {
+      // Create new loans for each selected tool
+      const newLoans: Loan[] = selectedTools.map((tool) => ({
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+        toolId: tool.id,
+        userId: currentUser.id,
+        borrowedAt: new Date().toISOString(),
+        status: "active",
+        notes: `Préstamo múltiple - ${selectedTools.length} herramientas`,
+      }))
+
+      // Update tools status to borrowed
+      const updatedTools = tools.map((tool) => {
+        const isSelected = selectedTools.some(selectedTool => selectedTool.id === tool.id)
+        if (isSelected) {
+          return { ...tool, status: "borrowed" as const, updatedAt: new Date().toISOString() }
+        }
+        return tool
+      })
+
+      // Update loans state
+      const updatedLoans = [...loans, ...newLoans]
+
+      // Save to localStorage
+      setStoredData(STORAGE_KEYS.TOOLS, updatedTools)
+      setStoredData(STORAGE_KEYS.LOANS, updatedLoans)
+
+      // Update state
+      setTools(updatedTools)
+      setLoans(updatedLoans)
+
+      console.log(`[v0] Successfully processed bulk loan for ${selectedTools.length} tools`)
+    } catch (error) {
+      console.error(`[v0] Error processing bulk loan:`, error)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -217,7 +271,19 @@ function DashboardContent() {
                 <p className="text-sm text-muted-foreground">Colegio - Gestión de Herramientas</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
+              {/* Barra de búsqueda */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Input
+                  type="text"
+                  placeholder="Buscar herramientas..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 w-64"
+                />
+              </div>
+
               <div className="text-right">
                 <p className="text-sm font-medium text-foreground">{currentUser.name}</p>
                 <p className="text-xs text-muted-foreground capitalize">{currentUser.role}</p>
@@ -238,7 +304,7 @@ function DashboardContent() {
       <main className="container mx-auto px-4 py-6">
         {/* Stats Dashboard */}
         <div className="mb-8">
-          <DashboardStats tools={tools} loans={loans} users={users} />
+          <DashboardStats tools={filteredTools} loans={loans} users={users} />
         </div>
 
         {/* Quick Actions */}
@@ -292,7 +358,13 @@ function DashboardContent() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Inventory Overview - Takes 2 columns */}
           <div className="lg:col-span-2">
-            <InventoryOverview tools={tools} categories={categories} onToolAction={handleToolAction} />
+            <InventoryOverview
+              tools={filteredTools}
+              categories={categories}
+              loans={loans}
+              users={users}
+              onToolAction={handleToolAction}
+            />
           </div>
 
           {/* Recent Activity - Takes 1 column */}
@@ -322,6 +394,7 @@ function DashboardContent() {
           tool={scanResult.tool}
           currentUser={currentUser}
           onAction={handleScanResultAction}
+          onBulkLoan={() => setShowBulkLoanModal(true)}
           onClose={() => setScanResult(null)}
           isProcessing={isProcessing}
         />
@@ -343,6 +416,18 @@ function DashboardContent() {
         tools={tools}
         users={users}
         onReturnTool={handleReturnTool}
+      />
+
+      {/* Bulk Loan Modal */}
+      <BulkLoanModal
+        isOpen={showBulkLoanModal}
+        onClose={() => setShowBulkLoanModal(false)}
+        tools={filteredTools}
+        currentUser={currentUser}
+        onBulkLoan={(selectedTools) => {
+          handleBulkLoan(selectedTools)
+          setShowBulkLoanModal(false)
+        }}
       />
     </div>
   )

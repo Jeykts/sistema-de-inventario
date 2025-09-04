@@ -1,10 +1,11 @@
 "use client"
 
+import React, { useMemo, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { CheckCircle, AlertCircle, Package, User, Clock } from "lucide-react"
+import { CheckCircle, AlertCircle, Package, User, Clock, Users } from "lucide-react"
 import type { Tool, User as UserType } from "@/lib/data"
 
 interface QRScanResultProps {
@@ -12,37 +13,24 @@ interface QRScanResultProps {
   tool: Tool | null
   currentUser: UserType
   onAction: (action: "borrow" | "return" | "maintenance") => void
+  onBulkLoan?: () => void
   onClose: () => void
   isProcessing: boolean
 }
 
-export function QRScanResult({ scannedCode, tool, currentUser, onAction, onClose, isProcessing }: QRScanResultProps) {
-  if (!tool) {
-    return (
-      <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-red-600">
-              <AlertCircle className="w-5 h-5" />
-              Herramienta No Encontrada
-            </CardTitle>
-            <CardDescription>El código QR escaneado no corresponde a ninguna herramienta</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>Código escaneado: {scannedCode}</AlertDescription>
-            </Alert>
-            <Button onClick={onClose} className="w-full">
-              Cerrar
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
+const QRScanResult = React.memo<QRScanResultProps>(function QRScanResult({
+  scannedCode,
+  tool,
+  currentUser,
+  onAction,
+  onBulkLoan,
+  onClose,
+  isProcessing
+}) {
+  // Memoizar la información del estado para evitar cálculos innecesarios
+  const statusInfo = useMemo(() => {
+    if (!tool) return null
 
-  const getStatusInfo = () => {
     switch (tool.status) {
       case "available":
         return {
@@ -81,28 +69,66 @@ export function QRScanResult({ scannedCode, tool, currentUser, onAction, onClose
           actions: [],
         }
     }
+  }, [tool, currentUser.role])
+
+  // Memoizar las funciones de acción para evitar re-renders
+  const handleAction = useCallback((action: "borrow" | "return" | "maintenance") => {
+    onAction(action)
+  }, [onAction])
+
+  const handleClose = useCallback(() => {
+    onClose()
+  }, [onClose])
+
+  const handleBulkLoan = useCallback(() => {
+    onBulkLoan?.()
+  }, [onBulkLoan])
+
+  // Caso cuando no se encuentra la herramienta
+  if (!tool) {
+    return (
+      <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="not-found-title">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle id="not-found-title" className="flex items-center gap-2 text-red-600">
+              <AlertCircle className="w-5 h-5" />
+              Herramienta No Encontrada
+            </CardTitle>
+            <CardDescription>El código QR escaneado no corresponde a ninguna herramienta</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>Código escaneado: {scannedCode}</AlertDescription>
+            </Alert>
+            <Button onClick={handleClose} className="w-full">
+              Cerrar
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
-  const statusInfo = getStatusInfo()
-
-  const getActionButton = (action: string) => {
+  // Función para renderizar botones de acción
+  const renderActionButton = (action: string) => {
     switch (action) {
       case "borrow":
         return (
-          <Button onClick={() => onAction("borrow")} disabled={isProcessing} className="flex-1">
+          <Button onClick={() => handleAction("borrow")} disabled={isProcessing} className="flex-1">
             {isProcessing ? "Procesando..." : "Tomar Prestado"}
           </Button>
         )
       case "return":
         return (
-          <Button onClick={() => onAction("return")} disabled={isProcessing} variant="secondary" className="flex-1">
+          <Button onClick={() => handleAction("return")} disabled={isProcessing} variant="secondary" className="flex-1">
             {isProcessing ? "Procesando..." : "Devolver"}
           </Button>
         )
       case "maintenance":
         return (
           <Button
-            onClick={() => onAction("maintenance")}
+            onClick={() => handleAction("maintenance")}
             disabled={isProcessing}
             variant="outline"
             className="flex-1 bg-transparent"
@@ -116,14 +142,14 @@ export function QRScanResult({ scannedCode, tool, currentUser, onAction, onClose
   }
 
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="qr-result-title">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className={`flex items-center gap-2 ${statusInfo.color}`}>
-            {statusInfo.icon}
-            {statusInfo.title}
+          <CardTitle id="qr-result-title" className={`flex items-center gap-2 ${statusInfo?.color}`}>
+            {statusInfo?.icon}
+            {statusInfo?.title}
           </CardTitle>
-          <CardDescription>{statusInfo.description}</CardDescription>
+          <CardDescription>{statusInfo?.description}</CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-4">
@@ -143,7 +169,7 @@ export function QRScanResult({ scannedCode, tool, currentUser, onAction, onClose
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Estado:</span>
-              <Badge className={statusInfo.bg + " " + statusInfo.color}>
+              <Badge className={`${statusInfo?.bg} ${statusInfo?.color}`}>
                 {tool.status === "available" && "Disponible"}
                 {tool.status === "borrowed" && "Prestado"}
                 {tool.status === "maintenance" && "Mantenimiento"}
@@ -152,7 +178,7 @@ export function QRScanResult({ scannedCode, tool, currentUser, onAction, onClose
           </div>
 
           {/* User Information */}
-          <div className={`p-3 rounded-lg ${statusInfo.bg}`}>
+          <div className={`p-3 rounded-lg ${statusInfo?.bg}`}>
             <div className="flex items-center gap-2 mb-2">
               <User className="w-4 h-4" />
               <span className="font-medium">Usuario Actual</span>
@@ -172,21 +198,42 @@ export function QRScanResult({ scannedCode, tool, currentUser, onAction, onClose
           )}
 
           {/* Actions */}
-          <div className="flex gap-2">
-            {statusInfo.actions.length > 0 ? (
-              statusInfo.actions.map((action) => getActionButton(action))
-            ) : (
-              <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>No hay acciones disponibles para esta herramienta.</AlertDescription>
-              </Alert>
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              {statusInfo && statusInfo.actions.length > 0 ? (
+                statusInfo.actions.map((action) => (
+                  <div key={action}>
+                    {renderActionButton(action)}
+                  </div>
+                ))
+              ) : (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>No hay acciones disponibles para esta herramienta.</AlertDescription>
+                </Alert>
+              )}
+              <Button variant="outline" onClick={handleClose} disabled={isProcessing} className="bg-transparent">
+                Cancelar
+              </Button>
+            </div>
+
+            {/* Bulk Loan Button */}
+            {onBulkLoan && (
+              <Button
+                variant="outline"
+                onClick={handleBulkLoan}
+                disabled={isProcessing}
+                className="w-full bg-transparent"
+              >
+                <Users className="w-4 h-4 mr-2" />
+                Préstamo Múltiple
+              </Button>
             )}
-            <Button variant="outline" onClick={onClose} disabled={isProcessing} className="bg-transparent">
-              Cancelar
-            </Button>
           </div>
         </CardContent>
       </Card>
     </div>
   )
-}
+})
+
+export { QRScanResult }

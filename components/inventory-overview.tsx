@@ -6,19 +6,42 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, QrCode, Edit } from "lucide-react"
-import type { Tool, Category } from "@/lib/data"
+import { Search, QrCode, Edit, Package, Users, RotateCcw } from "lucide-react"
+import type { Tool, Category, Loan, User as UserType } from "@/lib/data"
+import { StockManagementModal } from "./stock-management-modal"
+import { BulkLoanModal } from "./bulk-loan-modal"
+import { ReturnModal } from "./return-modal"
 
 interface InventoryOverviewProps {
   tools: Tool[]
   categories: Category[]
+  loans: Loan[]
+  users: UserType[]
   onToolAction: (toolId: string, action: "borrow" | "return" | "maintenance" | "edit" | "delete") => void
+  onBulkLoan?: (loanData: {
+    userInfo: { name: string; lastName: string; course: string }
+    toolLoans: { toolId: string; quantity: number }[]
+  }) => void
+  onReturn?: (loanId: string, returnedQuantity: number) => void
 }
 
-export function InventoryOverview({ tools, categories, onToolAction }: InventoryOverviewProps) {
+export function InventoryOverview({
+  tools,
+  categories,
+  loans,
+  users,
+  onToolAction,
+  onBulkLoan,
+  onReturn
+}: InventoryOverviewProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCategory, setSelectedCategory] = useState<string>("all")
   const [selectedStatus, setSelectedStatus] = useState<string>("all")
+  const [stockModalOpen, setStockModalOpen] = useState(false)
+  const [selectedToolForStock, setSelectedToolForStock] = useState<Tool | null>(null)
+  const [bulkLoanModalOpen, setBulkLoanModalOpen] = useState(false)
+  const [returnModalOpen, setReturnModalOpen] = useState(false)
+  const [selectedToolForReturn, setSelectedToolForReturn] = useState<Tool | null>(null)
 
   const filteredTools = tools.filter((tool) => {
     const matchesSearch =
@@ -51,6 +74,41 @@ export function InventoryOverview({ tools, categories, onToolAction }: Inventory
     return category?.color || "bg-gray-100 text-gray-800"
   }
 
+  const handleUpdateStock = async (toolId: string, newQuantity: number, newAvailableQuantity: number) => {
+    try {
+      const response = await fetch(`/api/tools/${toolId}/stock`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          quantity: newQuantity,
+          availableQuantity: newAvailableQuantity,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Error al actualizar el stock')
+      }
+
+      // Aquí podrías actualizar el estado local o recargar los datos
+      // Por ahora, simplemente cerramos el modal
+      setStockModalOpen(false)
+      setSelectedToolForStock(null)
+
+      // Podrías mostrar un mensaje de éxito aquí
+      console.log('Stock actualizado exitosamente')
+    } catch (error) {
+      console.error('Error:', error)
+      // Podrías mostrar un mensaje de error aquí
+    }
+  }
+
+  const handleCloseStockModal = () => {
+    setStockModalOpen(false)
+    setSelectedToolForStock(null)
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -60,6 +118,16 @@ export function InventoryOverview({ tools, categories, onToolAction }: Inventory
             <CardDescription>
               Gestiona y consulta todas las herramientas disponibles ({filteredTools.length} de {tools.length})
             </CardDescription>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setBulkLoanModalOpen(true)}
+              className="bg-transparent"
+            >
+              <Users className="w-4 h-4 mr-2" />
+              Préstamo Múltiple
+            </Button>
           </div>
         </div>
 
@@ -135,12 +203,31 @@ export function InventoryOverview({ tools, categories, onToolAction }: Inventory
                     <span className="font-medium text-xs">{tool.location}</span>
                   </div>
                   <div className="flex justify-between">
+                    <span className="text-muted-foreground">Stock:</span>
+                    <span className="font-medium text-xs">
+                      {tool.availableQuantity}/{tool.quantity} disponible{tool.availableQuantity !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
                     <span className="text-muted-foreground">Actualizado:</span>
                     <span className="text-xs">{new Date(tool.updatedAt).toLocaleDateString("es-ES")}</span>
                   </div>
                 </div>
 
                 <div className="flex gap-2 mt-4">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 bg-transparent"
+                    onClick={() => {
+                      setSelectedToolForStock(tool)
+                      setStockModalOpen(true)
+                    }}
+                  >
+                    <Package className="w-3 h-3 mr-1" />
+                    Stock
+                  </Button>
+
                   <Button
                     size="sm"
                     variant="outline"
@@ -162,8 +249,12 @@ export function InventoryOverview({ tools, categories, onToolAction }: Inventory
                       size="sm"
                       variant="secondary"
                       className="flex-1"
-                      onClick={() => onToolAction(tool.id, "return")}
+                      onClick={() => {
+                        setSelectedToolForReturn(tool)
+                        setReturnModalOpen(true)
+                      }}
                     >
+                      <RotateCcw className="w-3 h-3 mr-1" />
                       Devolver
                     </Button>
                   )}
@@ -202,6 +293,46 @@ export function InventoryOverview({ tools, categories, onToolAction }: Inventory
           </div>
         )}
       </CardContent>
+
+      {/* Stock Management Modal */}
+      <StockManagementModal
+        isOpen={stockModalOpen}
+        onClose={handleCloseStockModal}
+        tool={selectedToolForStock}
+        onUpdateStock={handleUpdateStock}
+      />
+
+      {/* Bulk Loan Modal */}
+      <BulkLoanModal
+        isOpen={bulkLoanModalOpen}
+        onClose={() => setBulkLoanModalOpen(false)}
+        tools={tools}
+        onConfirmLoan={(loanData) => {
+          if (onBulkLoan) {
+            onBulkLoan(loanData)
+          }
+          setBulkLoanModalOpen(false)
+        }}
+      />
+
+      {/* Return Modal */}
+      <ReturnModal
+        isOpen={returnModalOpen}
+        onClose={() => {
+          setReturnModalOpen(false)
+          setSelectedToolForReturn(null)
+        }}
+        tool={selectedToolForReturn}
+        loans={loans}
+        users={users}
+        onConfirmReturn={(loanId, returnedQuantity) => {
+          if (onReturn) {
+            onReturn(loanId, returnedQuantity)
+          }
+          setReturnModalOpen(false)
+          setSelectedToolForReturn(null)
+        }}
+      />
     </Card>
   )
 }

@@ -1,6 +1,8 @@
 export interface User {
   id: string
   name: string
+  lastName?: string
+  course?: string
   email: string
   role: "admin" | "profesor"
   createdAt: string
@@ -14,6 +16,8 @@ export interface Tool {
   qrCode: string
   status: "available" | "borrowed" | "maintenance"
   location: string
+  quantity: number
+  availableQuantity: number
   createdAt: string
   updatedAt: string
 }
@@ -39,21 +43,27 @@ export interface Category {
 export const mockUsers: User[] = [
   {
     id: "1",
-    name: "María González",
+    name: "María",
+    lastName: "González",
+    course: "Administración",
     email: "maria.gonzalez@colegio.edu",
     role: "admin",
     createdAt: "2024-01-15T10:00:00Z",
   },
   {
     id: "2",
-    name: "Carlos Rodríguez",
+    name: "Carlos",
+    lastName: "Rodríguez",
+    course: "Matemáticas",
     email: "carlos.rodriguez@colegio.edu",
     role: "profesor",
     createdAt: "2024-01-16T09:30:00Z",
   },
   {
     id: "3",
-    name: "Ana Martínez",
+    name: "Ana",
+    lastName: "Martínez",
+    course: "Física",
     email: "ana.martinez@colegio.edu",
     role: "profesor",
     createdAt: "2024-01-17T11:15:00Z",
@@ -96,6 +106,8 @@ export const mockTools: Tool[] = [
     qrCode: "TOOL-001-2024",
     status: "available",
     location: "Taller A - Estante 1",
+    quantity: 5,
+    availableQuantity: 5,
     createdAt: "2024-01-10T08:00:00Z",
     updatedAt: "2024-01-10T08:00:00Z",
   },
@@ -107,6 +119,8 @@ export const mockTools: Tool[] = [
     qrCode: "TOOL-002-2024",
     status: "borrowed",
     location: "Taller B - Estante 2",
+    quantity: 10,
+    availableQuantity: 9,
     createdAt: "2024-01-11T09:15:00Z",
     updatedAt: "2024-01-20T14:30:00Z",
   },
@@ -118,6 +132,8 @@ export const mockTools: Tool[] = [
     qrCode: "TOOL-003-2024",
     status: "available",
     location: "Taller A - Estante 3",
+    quantity: 8,
+    availableQuantity: 8,
     createdAt: "2024-01-12T10:30:00Z",
     updatedAt: "2024-01-12T10:30:00Z",
   },
@@ -129,6 +145,8 @@ export const mockTools: Tool[] = [
     qrCode: "TOOL-004-2024",
     status: "available",
     location: "Almacén - Estante Seguridad",
+    quantity: 15,
+    availableQuantity: 15,
     createdAt: "2024-01-13T11:45:00Z",
     updatedAt: "2024-01-13T11:45:00Z",
   },
@@ -173,8 +191,15 @@ export const initializeData = () => {
 
 export const getStoredData = (key: string): any[] => {
   if (typeof window === "undefined") return []
-  const data = localStorage.getItem(key)
-  return data ? JSON.parse(data) : []
+  try {
+    const data = localStorage.getItem(key)
+    return data ? JSON.parse(data) : []
+  } catch (error) {
+    console.error(`Error parsing localStorage data for key ${key}:`, error)
+    // Clear corrupted data and return empty array
+    localStorage.removeItem(key)
+    return []
+  }
 }
 
 export const setStoredData = (key: string, data: any[]) => {

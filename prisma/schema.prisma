@@ -6,13 +6,15 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "mysql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
   id        String   @id @default(cuid())
   name      String
+  lastName  String?
+  course    String?
   email     String   @unique
   password  String
   role      Role     @default(PROFESOR)
@@ -32,6 +34,8 @@ model Tool {
   qrCode      String   @unique
   status      ToolStatus @default(AVAILABLE)
   location    String
+  quantity    Int      @default(1)
+  availableQuantity Int @default(1)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -44,6 +48,7 @@ model Loan {
   id         String   @id @default(cuid())
   toolId     String
   userId     String
+  quantity   Int      @default(1)
   borrowedAt DateTime @default(now())
   returnedAt DateTime?
   status     LoanStatus @default(ACTIVE)
