@@ -4,7 +4,7 @@ export interface User {
   lastName?: string
   course?: string
   email: string
-  role: "admin" | "profesor"
+  role: "ADMIN" | "PROFESOR"
   createdAt: string
 }
 
@@ -30,7 +30,7 @@ export interface Loan {
   quantity: number
   borrowedAt: string
   returnedAt?: string
-  status: "active" | "returned" | "overdue"
+  status: "ACTIVE" | "RETURNED" | "OVERDUE"
   notes?: string
 }
 
@@ -49,7 +49,7 @@ export const mockUsers: User[] = [
     lastName: "González",
     course: "Administración",
     email: "maria.gonzalez@colegio.edu",
-    role: "admin",
+    role: "ADMIN",
     createdAt: "2024-01-15T10:00:00Z",
   },
   {
@@ -58,7 +58,7 @@ export const mockUsers: User[] = [
     lastName: "Rodríguez",
     course: "Matemáticas",
     email: "carlos.rodriguez@colegio.edu",
-    role: "profesor",
+    role: "PROFESOR",
     createdAt: "2024-01-16T09:30:00Z",
   },
   {
@@ -67,7 +67,7 @@ export const mockUsers: User[] = [
     lastName: "Martínez",
     course: "Física",
     email: "ana.martinez@colegio.edu",
-    role: "profesor",
+    role: "PROFESOR",
     createdAt: "2024-01-17T11:15:00Z",
   },
 ]
@@ -161,7 +161,7 @@ export const mockLoans: Loan[] = [
     userId: "2",
     quantity: 1,
     borrowedAt: "2024-01-20T14:30:00Z",
-    status: "active",
+    status: "ACTIVE",
     notes: "Para proyecto de carpintería",
   },
 ]

@@ -11,13 +11,17 @@ import type { Tool, Category, Loan, User as UserType } from "@/lib/data"
 import { StockManagementModal } from "./stock-management-modal"
 import { BulkLoanModal } from "./bulk-loan-modal"
 import { ReturnModal } from "./return-modal"
+import { LoanModal } from "./loan-modal"
 
 interface InventoryOverviewProps {
   tools: Tool[]
   categories: Category[]
   loans: Loan[]
   users: UserType[]
+  currentUser: UserType
   onToolAction: (toolId: string, action: "borrow" | "return" | "maintenance" | "edit" | "delete") => void
+  onConfirmLoan: (userId: string, toolId: string, quantity: number, notes: string) => void
+  onConfirmReturn: (loanId: string, quantity: number) => void
   onBulkLoan?: (loanData: {
     userInfo: { name: string; lastName: string; course: string }
     toolLoans: { toolId: string; quantity: number }[]
@@ -30,7 +34,10 @@ export function InventoryOverview({
   categories,
   loans,
   users,
+  currentUser,
   onToolAction,
+  onConfirmLoan,
+  onConfirmReturn,
   onBulkLoan,
   onReturn
 }: InventoryOverviewProps) {
@@ -42,6 +49,9 @@ export function InventoryOverview({
   const [bulkLoanModalOpen, setBulkLoanModalOpen] = useState(false)
   const [returnModalOpen, setReturnModalOpen] = useState(false)
   const [selectedToolForReturn, setSelectedToolForReturn] = useState<Tool | null>(null)
+  const [loanModalOpen, setLoanModalOpen] = useState(false)
+  const [selectedToolForLoan, setSelectedToolForLoan] = useState<Tool | null>(null)
+  const [loanModalMode, setLoanModalMode] = useState<"borrow" | "return">("borrow")
 
   const filteredTools = tools.filter((tool) => {
     const matchesSearch =
@@ -107,6 +117,33 @@ export function InventoryOverview({
   const handleCloseStockModal = () => {
     setStockModalOpen(false)
     setSelectedToolForStock(null)
+  }
+
+  const getActiveLoansForTool = (toolId: string) => {
+    return loans.filter(loan =>
+      loan.toolId === toolId &&
+      loan.status === "ACTIVE"
+    ).map(loan => ({
+      id: loan.id,
+      userId: loan.userId,
+      quantity: loan.quantity,
+      borrowedAt: loan.borrowedAt,
+      notes: loan.notes
+    }))
+  }
+
+  const handleConfirmLoan = async (userId: string, quantity: number, notes: string) => {
+    if (!selectedToolForLoan) return
+    await onConfirmLoan(userId, selectedToolForLoan.id, quantity, notes)
+  }
+
+  const handleConfirmReturn = async (loanId: string, quantity: number) => {
+    await onConfirmReturn(loanId, quantity)
+  }
+
+  const handleCloseLoanModal = () => {
+    setLoanModalOpen(false)
+    setSelectedToolForLoan(null)
   }
 
   return (
@@ -218,34 +255,38 @@ export function InventoryOverview({
                     </div>
                   </div>
 
-                  {/* Botón principal centrado */}
-                  <div className="flex justify-center">
-                    {tool.status === "AVAILABLE" && (
-                      <Button
-                        size="sm"
-                        className="w-full"
-                        onClick={() => onToolAction(tool.id, "borrow")}
-                      >
-                        Prestar
-                      </Button>
-                    )}
+                  {/* Botones principales */}
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => {
+                        setSelectedToolForLoan(tool)
+                        setLoanModalMode("borrow")
+                        setLoanModalOpen(true)
+                      }}
+                    >
+                      Prestar
+                    </Button>
 
-                    {tool.status === "BORROWED" && (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        className="w-full"
-                        onClick={() => {
-                          setSelectedToolForReturn(tool)
-                          setReturnModalOpen(true)
-                        }}
-                      >
-                        <RotateCcw className="w-4 h-4 mr-2" />
-                        Devolver
-                      </Button>
-                    )}
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="flex-1"
+                      onClick={() => {
+                        setSelectedToolForLoan(tool)
+                        setLoanModalMode("return")
+                        setLoanModalOpen(true)
+                      }}
+                    >
+                      <RotateCcw className="w-4 h-4 mr-2" />
+                      Devolver
+                    </Button>
+                  </div>
 
-                    {tool.status === "MAINTENANCE" && (
+                  {/* Botón de mantenimiento si está en mantenimiento */}
+                  {tool.status === "MAINTENANCE" && (
+                    <div className="mt-2">
                       <Button
                         size="sm"
                         variant="outline"
@@ -255,8 +296,8 @@ export function InventoryOverview({
                         <Edit className="w-4 h-4 mr-2" />
                         Editar
                       </Button>
-                    )}
-                  </div>
+                    </div>
+                  )}
 
                   {/* Botones secundarios */}
                   <div className="flex gap-2 mt-3">
@@ -345,6 +386,19 @@ export function InventoryOverview({
           setReturnModalOpen(false)
           setSelectedToolForReturn(null)
         }}
+      />
+
+      {/* Loan Modal */}
+      <LoanModal
+        isOpen={loanModalOpen}
+        onClose={handleCloseLoanModal}
+        tool={selectedToolForLoan}
+        users={users}
+        currentUser={currentUser}
+        mode={loanModalMode}
+        onConfirmLoan={handleConfirmLoan}
+        onConfirmReturn={handleConfirmReturn}
+        activeLoans={selectedToolForLoan ? getActiveLoansForTool(selectedToolForLoan.id) : []}
       />
     </Card>
   )

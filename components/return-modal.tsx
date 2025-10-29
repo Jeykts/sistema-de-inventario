@@ -24,7 +24,7 @@ export function ReturnModal({ isOpen, onClose, tool, loans, users, onConfirmRetu
 
   // Filtrar préstamos activos para esta herramienta
   const activeLoans = loans?.filter(
-    (loan) => loan.toolId === tool?.id && loan.status === "active"
+    (loan) => loan.toolId === tool?.id && loan.status === "ACTIVE"
   ) || []
 
   useEffect(() => {

@@ -57,7 +57,7 @@ const QRScanResult = React.memo<QRScanResultProps>(function QRScanResult({
           icon: <AlertCircle className="w-5 h-5" />,
           title: "En Mantenimiento",
           description: "Esta herramienta requiere mantenimiento",
-          actions: currentUser.role === "admin" ? ["maintenance"] : [],
+          actions: currentUser.role === "ADMIN" ? ["maintenance"] : [],
         }
       default:
         return {

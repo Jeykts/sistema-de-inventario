@@ -108,13 +108,42 @@ function DashboardContent() {
     setShowQRScanner(false)
   }
 
-  const handleToolAction = (toolId: string, action: "borrow" | "return" | "maintenance" | "edit" | "delete") => {
+  const handleToolAction = async (toolId: string, action: "borrow" | "return" | "maintenance" | "edit" | "delete") => {
     console.log(`[v0] Tool action: ${action} for tool ${toolId}`)
 
     const tool = tools.find((t) => t.id === toolId)
     if (!tool) return
 
     switch (action) {
+      case "borrow":
+        if (!currentUser) return
+
+        try {
+          // Create loan via API
+          const response = await fetch('/api/loans', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              toolId: tool.id,
+              userId: currentUser.id,
+              quantity: 1,
+              notes: `Prestado desde inventario`,
+            }),
+          })
+
+          if (!response.ok) {
+            throw new Error('Error creating loan')
+          }
+
+          console.log(`[v0] Successfully created loan for ${tool.name}`)
+          loadData() // Reload data to reflect changes
+        } catch (error) {
+          console.error(`[v0] Error creating loan:`, error)
+        }
+        break
+
       case "edit":
         // Show QR generator for the tool
         setShowQRGenerator({
@@ -123,6 +152,7 @@ function DashboardContent() {
           qrCode: tool.qrCode,
         })
         break
+
       default:
         console.log(`[v0] Action ${action} will be implemented in next task`)
         break
@@ -136,58 +166,58 @@ function DashboardContent() {
     console.log(`[v0] Processing ${action} for tool ${scanResult.tool.id}`)
 
     try {
-      // Simulate processing delay
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-
-      const updatedTools = tools.map((tool) => {
-        if (tool.id === scanResult.tool!.id) {
-          switch (action) {
-            case "borrow":
-              return { ...tool, status: "BORROWED" as const, updatedAt: new Date().toISOString() }
-            case "return":
-              return { ...tool, status: "AVAILABLE" as const, updatedAt: new Date().toISOString() }
-            case "maintenance":
-              return { ...tool, status: "AVAILABLE" as const, updatedAt: new Date().toISOString() }
-            default:
-              return tool
-          }
-        }
-        return tool
-      })
-
-      // Update loans if borrowing or returning
-      let updatedLoans = [...loans]
       if (action === "borrow") {
-        const newLoan: Loan = {
-          id: Date.now().toString(),
-          toolId: scanResult.tool.id,
-          userId: currentUser.id,
-          quantity: 1,
-          borrowedAt: new Date().toISOString(),
-          status: "active",
-          notes: `Prestado via QR Scanner`,
-        }
-        updatedLoans.push(newLoan)
-      } else if (action === "return") {
-        updatedLoans = updatedLoans.map((loan) => {
-          if (loan.toolId === scanResult.tool!.id && loan.status === "active") {
-            return {
-              ...loan,
-              returnedAt: new Date().toISOString(),
-              status: "returned" as const,
-            }
-          }
-          return loan
+        // Create loan via API
+        const response = await fetch('/api/loans', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            toolId: scanResult.tool.id,
+            userId: currentUser.id,
+            quantity: 1,
+            notes: `Prestado via QR Scanner`,
+          }),
         })
+
+        if (!response.ok) {
+          throw new Error('Error creating loan')
+        }
+
+        console.log(`[v0] Successfully created loan for ${scanResult.tool.name}`)
+      } else if (action === "return") {
+        // Find active loan for this tool and user
+        const activeLoan = loans.find(
+          (loan) => scanResult.tool && loan.toolId === scanResult.tool.id &&
+                   loan.userId === currentUser.id &&
+                   loan.status === "ACTIVE"
+        )
+
+        if (activeLoan) {
+          // Return loan via API
+          const response = await fetch(`/api/loans/${activeLoan.id}/return`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              returnedQuantity: activeLoan.quantity,
+            }),
+          })
+
+          if (!response.ok) {
+            throw new Error('Error returning loan')
+          }
+
+          console.log(`[v0] Successfully returned loan for ${scanResult.tool.name}`)
+        } else {
+          throw new Error('No active loan found for this tool')
+        }
       }
 
-      // Save to localStorage
-      setStoredData(STORAGE_KEYS.TOOLS, updatedTools)
-      setStoredData(STORAGE_KEYS.LOANS, updatedLoans)
-
-      // Update state
-      setTools(updatedTools)
-      setLoans(updatedLoans)
+      // Reload data to reflect changes
+      loadData()
 
       console.log(`[v0] Successfully processed ${action}`)
     } catch (error) {
@@ -255,6 +285,57 @@ function DashboardContent() {
       console.log(`[v0] Successfully processed bulk loan for ${loanData.toolLoans.length} tool loans`)
     } catch (error) {
       console.error(`[v0] Error processing bulk loan:`, error)
+    }
+  }
+
+  const handleConfirmLoan = async (userId: string, toolId: string, quantity: number, notes: string) => {
+    try {
+      const response = await fetch('/api/loans', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          toolId,
+          userId,
+          quantity,
+          notes,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Error creating loan')
+      }
+
+      console.log(`[v0] Successfully created loan via modal`)
+      loadData() // Reload data to reflect changes
+    } catch (error) {
+      console.error(`[v0] Error creating loan via modal:`, error)
+      throw error
+    }
+  }
+
+  const handleConfirmReturn = async (loanId: string, quantity: number) => {
+    try {
+      const response = await fetch(`/api/loans/${loanId}/return`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          returnedQuantity: quantity,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Error returning loan')
+      }
+
+      console.log(`[v0] Successfully returned loan via modal`)
+      loadData() // Reload data to reflect changes
+    } catch (error) {
+      console.error(`[v0] Error returning loan via modal:`, error)
+      throw error
     }
   }
 
@@ -377,13 +458,18 @@ function DashboardContent() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Inventory Overview - Takes 2 columns */}
           <div className="lg:col-span-2">
-            <InventoryOverview
-              tools={filteredTools}
-              categories={categories}
-              loans={loans}
-              users={users}
-              onToolAction={handleToolAction}
-            />
+            {currentUser && (
+              <InventoryOverview
+                tools={filteredTools}
+                categories={categories}
+                loans={loans}
+                users={users}
+                currentUser={currentUser}
+                onToolAction={handleToolAction}
+                onConfirmLoan={handleConfirmLoan}
+                onConfirmReturn={handleConfirmReturn}
+              />
+            )}
           </div>
 
           {/* Recent Activity - Takes 1 column */}

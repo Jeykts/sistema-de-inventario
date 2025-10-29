@@ -58,7 +58,7 @@ export function SettingsModal({ isOpen, onClose, currentUser }: SettingsModalPro
     lastName: "",
     email: "",
     course: "",
-    role: "profesor" as "admin" | "profesor"
+    role: "PROFESOR" as "ADMIN" | "PROFESOR"
   })
 
   // Category Management State
@@ -224,7 +224,7 @@ export function SettingsModal({ isOpen, onClose, currentUser }: SettingsModalPro
       lastName: "",
       email: "",
       course: "",
-      role: "profesor"
+      role: "PROFESOR"
     })
   }
 
@@ -450,8 +450,8 @@ export function SettingsModal({ isOpen, onClose, currentUser }: SettingsModalPro
                           <TableCell>{user.name} {user.lastName}</TableCell>
                           <TableCell>{user.email}</TableCell>
                           <TableCell>
-                            <Badge variant={user.role === "admin" ? "default" : "secondary"}>
-                              {user.role === "admin" ? "Administrador" : "Profesor"}
+                            <Badge variant={user.role === "ADMIN" ? "default" : "secondary"}>
+                              {user.role === "ADMIN" ? "Administrador" : "Profesor"}
                             </Badge>
                           </TableCell>
                           <TableCell>{user.course || "-"}</TableCell>
@@ -530,14 +530,14 @@ export function SettingsModal({ isOpen, onClose, currentUser }: SettingsModalPro
                       <Label htmlFor="user-role">Rol</Label>
                       <Select
                         value={userForm.role}
-                        onValueChange={(value: "admin" | "profesor") => setUserForm(prev => ({ ...prev, role: value }))}
+                        onValueChange={(value: "ADMIN" | "PROFESOR") => setUserForm(prev => ({ ...prev, role: value }))}
                       >
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="profesor">Profesor</SelectItem>
-                          <SelectItem value="admin">Administrador</SelectItem>
+                          <SelectItem value="PROFESOR">Profesor</SelectItem>
+                          <SelectItem value="ADMIN">Administrador</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>

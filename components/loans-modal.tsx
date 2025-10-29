@@ -35,11 +35,11 @@ export function LoansModal({ isOpen, onClose, loans, tools, users, onReturnTool 
 
   const getStatusBadge = (status: Loan["status"]) => {
     switch (status) {
-      case "active":
+      case "ACTIVE":
         return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">Activo</Badge>
-      case "returned":
+      case "RETURNED":
         return <Badge className="bg-green-100 text-green-800 hover:bg-green-200">Devuelto</Badge>
-      case "overdue":
+      case "OVERDUE":
         return <Badge className="bg-red-100 text-red-800 hover:bg-red-200">Vencido</Badge>
       default:
         return <Badge variant="secondary">Desconocido</Badge>
@@ -116,9 +116,9 @@ export function LoansModal({ isOpen, onClose, loans, tools, users, onReturnTool 
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="active">Activos</SelectItem>
-                <SelectItem value="returned">Devueltos</SelectItem>
-                <SelectItem value="overdue">Vencidos</SelectItem>
+                <SelectItem value="ACTIVE">Activos</SelectItem>
+                <SelectItem value="RETURNED">Devueltos</SelectItem>
+                <SelectItem value="OVERDUE">Vencidos</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -204,7 +204,7 @@ export function LoansModal({ isOpen, onClose, loans, tools, users, onReturnTool 
                       </span>
                     </TableCell>
                     <TableCell>
-                      {loan.status === "active" && (
+                      {loan.status === "ACTIVE" && (
                         <Button
                           size="sm"
                           variant="outline"

@@ -13,10 +13,17 @@ interface DashboardStatsProps {
 }
 
 export function DashboardStats({ tools, loans, users }: DashboardStatsProps) {
-  const availableTools = tools.filter((tool) => tool.status === "available")
-  const borrowedTools = tools.filter((tool) => tool.status === "borrowed")
-  const maintenanceTools = tools.filter((tool) => tool.status === "maintenance")
-  const activeLoans = loans.filter((loan) => loan.status === "active")
+  // Tools with available stock
+  const availableTools = tools.filter((tool) => tool.availableQuantity > 0 && tool.status !== "MAINTENANCE")
+
+  // Tools that are currently borrowed (have some quantity loaned out)
+  const borrowedTools = tools.filter((tool) => tool.availableQuantity < tool.quantity && tool.status !== "MAINTENANCE")
+
+  // Tools in maintenance
+  const maintenanceTools = tools.filter((tool) => tool.status === "MAINTENANCE")
+
+  // Active loans
+  const activeLoans = loans.filter((loan) => loan.status === "ACTIVE")
 
   // Calculate utilization rate
   const utilizationRate = tools.length > 0 ? (borrowedTools.length / tools.length) * 100 : 0
@@ -99,8 +106,8 @@ export function DashboardStats({ tools, loans, users }: DashboardStatsProps) {
         <CardContent>
           <div className="text-2xl font-bold text-primary">{users.length}</div>
           <p className="text-xs text-muted-foreground">
-            {users.filter((u) => u.role === "profesor").length} profesores,{" "}
-            {users.filter((u) => u.role === "admin").length} admin
+            {users.filter((u) => u.role === "PROFESOR").length} profesores,{" "}
+            {users.filter((u) => u.role === "ADMIN").length} admin
           </p>
         </CardContent>
       </Card>
