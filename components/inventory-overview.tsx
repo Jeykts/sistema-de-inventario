@@ -58,11 +58,11 @@ export function InventoryOverview({
 
   const getStatusBadge = (status: Tool["status"]) => {
     switch (status) {
-      case "available":
+      case "AVAILABLE":
         return <Badge className="bg-green-100 text-green-800 hover:bg-green-200">Disponible</Badge>
-      case "borrowed":
+      case "BORROWED":
         return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200">Prestado</Badge>
-      case "maintenance":
+      case "MAINTENANCE":
         return <Badge className="bg-red-100 text-red-800 hover:bg-red-200">Mantenimiento</Badge>
       default:
         return <Badge variant="secondary">Desconocido</Badge>
@@ -164,9 +164,9 @@ export function InventoryOverview({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="available">Disponible</SelectItem>
-                <SelectItem value="borrowed">Prestado</SelectItem>
-                <SelectItem value="maintenance">Mantenimiento</SelectItem>
+                <SelectItem value="AVAILABLE">Disponible</SelectItem>
+                <SelectItem value="BORROWED">Prestado</SelectItem>
+                <SelectItem value="MAINTENANCE">Mantenimiento</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -174,102 +174,115 @@ export function InventoryOverview({
       </CardHeader>
 
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredTools.map((tool) => (
-            <Card key={tool.id} className="hover:shadow-md transition-shadow">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="text-base">{tool.name}</CardTitle>
-                    <CardDescription className="text-sm mt-1">{tool.description}</CardDescription>
-                  </div>
-                  {getStatusBadge(tool.status)}
-                </div>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Categoría:</span>
-                    <Badge className={getCategoryColor(tool.category)} variant="secondary">
-                      {tool.category}
-                    </Badge>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Código QR:</span>
-                    <span className="font-mono text-xs bg-muted px-2 py-1 rounded">{tool.qrCode}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Ubicación:</span>
-                    <span className="font-medium text-xs">{tool.location}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Stock:</span>
-                    <span className="font-medium text-xs">
-                      {tool.availableQuantity}/{tool.quantity} disponible{tool.availableQuantity !== 1 ? 's' : ''}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Actualizado:</span>
-                    <span className="text-xs">{new Date(tool.updatedAt).toLocaleDateString("es-ES")}</span>
-                  </div>
+            <Card key={tool.id} className="shadow-sm hover:shadow-md transition-all duration-300 border-0 bg-card overflow-hidden">
+              <CardContent className="p-0">
+                {/* Imagen del herramienta */}
+                <div className="aspect-square bg-muted flex items-center justify-center overflow-hidden">
+                  <img
+                    src={tool.imageUrl || "/placeholder.jpg"}
+                    alt={tool.name}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
 
-                <div className="flex gap-2 mt-4">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="flex-1 bg-transparent"
-                    onClick={() => {
-                      setSelectedToolForStock(tool)
-                      setStockModalOpen(true)
-                    }}
-                  >
-                    <Package className="w-3 h-3 mr-1" />
-                    Stock
-                  </Button>
+                {/* Contenido de la tarjeta */}
+                <div className="p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-card-foreground text-sm leading-tight mb-1 truncate">
+                        {tool.name}
+                      </h3>
+                      <p className="text-xs text-muted-foreground leading-tight line-clamp-2">
+                        {tool.description}
+                      </p>
+                    </div>
+                    <div className="ml-2 flex-shrink-0">
+                      {getStatusBadge(tool.status)}
+                    </div>
+                  </div>
 
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="flex-1 bg-transparent"
-                    onClick={() => onToolAction(tool.id, "edit")}
-                  >
-                    <QrCode className="w-3 h-3 mr-1" />
-                    QR
-                  </Button>
+                  <div className="space-y-2 mb-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-muted-foreground">Categoría:</span>
+                      <Badge className={`${getCategoryColor(tool.category)} text-xs px-2 py-1`} variant="secondary">
+                        {tool.category}
+                      </Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-muted-foreground">Stock:</span>
+                      <span className="text-xs font-medium text-card-foreground">
+                        {tool.availableQuantity}/{tool.quantity}
+                      </span>
+                    </div>
+                  </div>
 
-                  {tool.status === "available" && (
-                    <Button size="sm" className="flex-1" onClick={() => onToolAction(tool.id, "borrow")}>
-                      Prestar
-                    </Button>
-                  )}
+                  {/* Botón principal centrado */}
+                  <div className="flex justify-center">
+                    {tool.status === "AVAILABLE" && (
+                      <Button
+                        size="sm"
+                        className="w-full"
+                        onClick={() => onToolAction(tool.id, "borrow")}
+                      >
+                        Prestar
+                      </Button>
+                    )}
 
-                  {tool.status === "borrowed" && (
+                    {tool.status === "BORROWED" && (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="w-full"
+                        onClick={() => {
+                          setSelectedToolForReturn(tool)
+                          setReturnModalOpen(true)
+                        }}
+                      >
+                        <RotateCcw className="w-4 h-4 mr-2" />
+                        Devolver
+                      </Button>
+                    )}
+
+                    {tool.status === "MAINTENANCE" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => onToolAction(tool.id, "edit")}
+                      >
+                        <Edit className="w-4 h-4 mr-2" />
+                        Editar
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Botones secundarios */}
+                  <div className="flex gap-2 mt-3">
                     <Button
                       size="sm"
-                      variant="secondary"
-                      className="flex-1"
+                      variant="ghost"
+                      className="flex-1 text-xs"
                       onClick={() => {
-                        setSelectedToolForReturn(tool)
-                        setReturnModalOpen(true)
+                        setSelectedToolForStock(tool)
+                        setStockModalOpen(true)
                       }}
                     >
-                      <RotateCcw className="w-3 h-3 mr-1" />
-                      Devolver
+                      <Package className="w-3 h-3 mr-1" />
+                      Stock
                     </Button>
-                  )}
 
-                  {tool.status === "maintenance" && (
                     <Button
                       size="sm"
-                      variant="outline"
-                      className="flex-1 bg-transparent"
+                      variant="ghost"
+                      className="flex-1 text-xs"
                       onClick={() => onToolAction(tool.id, "edit")}
                     >
-                      <Edit className="w-3 h-3 mr-1" />
-                      Editar
+                      <QrCode className="w-3 h-3 mr-1" />
+                      QR
                     </Button>
-                  )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -307,9 +320,9 @@ export function InventoryOverview({
         isOpen={bulkLoanModalOpen}
         onClose={() => setBulkLoanModalOpen(false)}
         tools={tools}
-        onConfirmLoan={(loanData) => {
+        onBulkLoan={(selectedTools) => {
           if (onBulkLoan) {
-            onBulkLoan(loanData)
+            onBulkLoan(selectedTools)
           }
           setBulkLoanModalOpen(false)
         }}

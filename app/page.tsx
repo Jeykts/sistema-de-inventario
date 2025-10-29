@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Card, CardContent } from "@/components/ui/card"
 import { Package, QrCode, BookOpen, Settings, LogOut, Plus, Search } from "lucide-react"
 import {
   initializeData,
@@ -25,6 +26,7 @@ import { QRScanResult } from "@/components/qr-scan-result"
 import { AddToolModal } from "@/components/add-tool-modal"
 import { LoansModal } from "@/components/loans-modal"
 import { BulkLoanModal } from "@/components/bulk-loan-modal"
+import { SettingsModal } from "@/components/settings-modal"
 
 function DashboardContent() {
   const [tools, setTools] = useState<Tool[]>([])
@@ -40,19 +42,11 @@ function DashboardContent() {
   const [showAddToolModal, setShowAddToolModal] = useState(false)
   const [showLoansModal, setShowLoansModal] = useState(false)
   const [showBulkLoanModal, setShowBulkLoanModal] = useState(false)
+  const [showSettingsModal, setShowSettingsModal] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const { user, logout, error, clearError } = useAuth()
-  
-  // Usuario mock para desarrollo/pruebas
-  const mockUser = {
-    id: "dev-1",
-    name: "Usuario de Desarrollo",
-    email: "dev@colegio.edu",
-    role: "admin" as const,
-    createdAt: new Date().toISOString()
-  }
-  
-  const currentUser = user || mockUser // Usar usuario mock si no hay usuario autenticado
+
+  const currentUser = user
 
   // Filtrar herramientas basado en la búsqueda
   const filteredTools = tools.filter((tool) =>
@@ -67,11 +61,43 @@ function DashboardContent() {
     loadData()
   }, [])
 
-  const loadData = () => {
-    setTools(getStoredData(STORAGE_KEYS.TOOLS))
-    setLoans(getStoredData(STORAGE_KEYS.LOANS))
-    setUsers(getStoredData(STORAGE_KEYS.USERS))
-    setCategories(getStoredData(STORAGE_KEYS.CATEGORIES))
+  const loadData = async () => {
+    try {
+      // Load tools from database
+      const toolsResponse = await fetch('/api/tools')
+      if (toolsResponse.ok) {
+        const toolsData = await toolsResponse.json()
+        setTools(toolsData)
+      }
+
+      // Load loans from database
+      const loansResponse = await fetch('/api/loans')
+      if (loansResponse.ok) {
+        const loansData = await loansResponse.json()
+        setLoans(loansData)
+      }
+
+      // Load users from database
+      const usersResponse = await fetch('/api/users')
+      if (usersResponse.ok) {
+        const usersData = await usersResponse.json()
+        setUsers(usersData)
+      }
+
+      // Load categories from database
+      const categoriesResponse = await fetch('/api/categories')
+      if (categoriesResponse.ok) {
+        const categoriesData = await categoriesResponse.json()
+        setCategories(categoriesData)
+      }
+    } catch (error) {
+      console.error('Error loading data:', error)
+      // Fallback to localStorage if API fails
+      setTools(getStoredData(STORAGE_KEYS.TOOLS))
+      setLoans(getStoredData(STORAGE_KEYS.LOANS))
+      setUsers(getStoredData(STORAGE_KEYS.USERS))
+      setCategories(getStoredData(STORAGE_KEYS.CATEGORIES))
+    }
   }
 
   const handleQRScan = (scannedCode: string) => {
@@ -117,11 +143,11 @@ function DashboardContent() {
         if (tool.id === scanResult.tool!.id) {
           switch (action) {
             case "borrow":
-              return { ...tool, status: "borrowed" as const, updatedAt: new Date().toISOString() }
+              return { ...tool, status: "BORROWED" as const, updatedAt: new Date().toISOString() }
             case "return":
-              return { ...tool, status: "available" as const, updatedAt: new Date().toISOString() }
+              return { ...tool, status: "AVAILABLE" as const, updatedAt: new Date().toISOString() }
             case "maintenance":
-              return { ...tool, status: "available" as const, updatedAt: new Date().toISOString() }
+              return { ...tool, status: "AVAILABLE" as const, updatedAt: new Date().toISOString() }
             default:
               return tool
           }
@@ -136,6 +162,7 @@ function DashboardContent() {
           id: Date.now().toString(),
           toolId: scanResult.tool.id,
           userId: currentUser.id,
+          quantity: 1,
           borrowedAt: new Date().toISOString(),
           status: "active",
           notes: `Prestado via QR Scanner`,
@@ -187,70 +214,45 @@ function DashboardContent() {
   }
 
   const handleReturnTool = (loanId: string) => {
-    const updatedLoans = loans.map((loan) => {
-      if (loan.id === loanId && loan.status === "active") {
-        return {
-          ...loan,
-          returnedAt: new Date().toISOString(),
-          status: "returned" as const,
-        }
-      }
-      return loan
-    })
-
-    const updatedTools = tools.map((tool) => {
-      const loan = loans.find(l => l.id === loanId)
-      if (loan && tool.id === loan.toolId) {
-        return { ...tool, status: "available" as const, updatedAt: new Date().toISOString() }
-      }
-      return tool
-    })
-
-    setStoredData(STORAGE_KEYS.LOANS, updatedLoans)
-    setStoredData(STORAGE_KEYS.TOOLS, updatedTools)
-    setLoans(updatedLoans)
-    setTools(updatedTools)
-
+    // The return is already handled by the API call in the loans modal
+    // Just reload the data to reflect the changes
+    loadData()
     console.log(`[v0] Tool returned via loans modal: ${loanId}`)
   }
 
-  const handleBulkLoan = (selectedTools: Tool[]) => {
-    if (!currentUser || selectedTools.length === 0) return
+  const handleBulkLoan = async (loanData: {
+    userInfo: { name: string; lastName: string; course: string }
+    toolLoans: { toolId: string; quantity: number }[]
+  }) => {
+    if (!currentUser || loanData.toolLoans.length === 0) return
 
-    console.log(`[v0] Processing bulk loan for ${selectedTools.length} tools`)
+    console.log(`[v0] Processing bulk loan for ${loanData.toolLoans.length} tool loans`)
 
     try {
-      // Create new loans for each selected tool
-      const newLoans: Loan[] = selectedTools.map((tool) => ({
-        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-        toolId: tool.id,
-        userId: currentUser.id,
-        borrowedAt: new Date().toISOString(),
-        status: "active",
-        notes: `Préstamo múltiple - ${selectedTools.length} herramientas`,
-      }))
+      // Create loans for each tool loan
+      for (const toolLoan of loanData.toolLoans) {
+        const response = await fetch('/api/loans', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            toolId: toolLoan.toolId,
+            userId: currentUser.id, // Use current logged in user
+            quantity: toolLoan.quantity,
+            notes: `Préstamo múltiple - Usuario: ${loanData.userInfo.name} ${loanData.userInfo.lastName} (${loanData.userInfo.course})`,
+          }),
+        })
 
-      // Update tools status to borrowed
-      const updatedTools = tools.map((tool) => {
-        const isSelected = selectedTools.some(selectedTool => selectedTool.id === tool.id)
-        if (isSelected) {
-          return { ...tool, status: "borrowed" as const, updatedAt: new Date().toISOString() }
+        if (!response.ok) {
+          throw new Error('Error creating loan')
         }
-        return tool
-      })
+      }
 
-      // Update loans state
-      const updatedLoans = [...loans, ...newLoans]
+      // Reload data to reflect changes
+      loadData()
 
-      // Save to localStorage
-      setStoredData(STORAGE_KEYS.TOOLS, updatedTools)
-      setStoredData(STORAGE_KEYS.LOANS, updatedLoans)
-
-      // Update state
-      setTools(updatedTools)
-      setLoans(updatedLoans)
-
-      console.log(`[v0] Successfully processed bulk loan for ${selectedTools.length} tools`)
+      console.log(`[v0] Successfully processed bulk loan for ${loanData.toolLoans.length} tool loans`)
     } catch (error) {
       console.error(`[v0] Error processing bulk loan:`, error)
     }
@@ -259,40 +261,45 @@ function DashboardContent() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4">
+      <header className="border-b bg-card shadow-sm">
+        <div className="container mx-auto px-6 py-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-10 h-10 bg-primary rounded-lg">
-                <Package className="w-6 h-6 text-primary-foreground" />
+            <div className="flex items-center gap-4">
+              <div className="flex items-center justify-center w-12 h-12 bg-primary rounded-lg shadow-sm">
+                <Package className="w-7 h-7 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-xl font-semibold text-foreground">Sistema de Inventario</h1>
+                <h1 className="text-2xl font-semibold text-foreground">Sistema de Inventario</h1>
                 <p className="text-sm text-muted-foreground">Colegio - Gestión de Herramientas</p>
               </div>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-6">
               {/* Barra de búsqueda */}
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
                 <Input
                   type="text"
                   placeholder="Buscar herramientas..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 w-64"
+                  className="pl-12 w-72 h-11"
                 />
               </div>
 
               <div className="text-right">
-                <p className="text-sm font-medium text-foreground">{currentUser.name}</p>
-                <p className="text-xs text-muted-foreground capitalize">{currentUser.role}</p>
+                <p className="text-sm font-medium text-foreground">{currentUser?.name}</p>
+                <p className="text-xs text-muted-foreground capitalize">{currentUser?.role}</p>
               </div>
-              <Button variant="outline" size="sm">
+              <Button
+                variant="outline"
+                size="default"
+                className="shadow-sm"
+                onClick={() => setShowSettingsModal(true)}
+              >
                 <Settings className="w-4 h-4 mr-2" />
                 Configuración
               </Button>
-              <Button variant="outline" size="sm" onClick={logout}>
+              <Button variant="outline" size="default" onClick={logout} className="shadow-sm">
                 <LogOut className="w-4 h-4 mr-2" />
                 Salir
               </Button>
@@ -308,50 +315,62 @@ function DashboardContent() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <Button
-            className="h-16 text-left justify-start bg-transparent"
-            variant="outline"
-            onClick={() => setShowQRScanner(true)}
-          >
-            <QrCode className="w-6 h-6 mr-3 text-primary" />
-            <div>
-              <div className="font-medium">Escanear QR</div>
-              <div className="text-sm text-muted-foreground">Prestar o devolver herramienta</div>
-            </div>
-          </Button>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+          <Card className="shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer group border-0 bg-card" onClick={() => setShowQRScanner(true)}>
+            <CardContent className="p-6 text-center">
+              <div className="flex flex-col items-center space-y-4">
+                <div className="p-4 bg-accent rounded-lg group-hover:bg-accent/80 transition-colors">
+                  <QrCode className="w-8 h-8 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg text-card-foreground mb-2">Escanear Código QR</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">Para prestar o devolver una herramienta</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-          <Button 
-            className="h-16 text-left justify-start bg-transparent" 
-            variant="outline"
-            onClick={() => setShowAddToolModal(true)}
-          >
-            <Plus className="w-6 h-6 mr-3 text-accent" />
-            <div>
-              <div className="font-medium">Agregar Herramienta</div>
-              <div className="text-sm text-muted-foreground">Registrar nueva herramienta</div>
-            </div>
-          </Button>
+          <Card className="shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer group border-0 bg-card" onClick={() => setShowAddToolModal(true)}>
+            <CardContent className="p-6 text-center">
+              <div className="flex flex-col items-center space-y-4">
+                <div className="p-4 bg-accent rounded-lg group-hover:bg-accent/80 transition-colors">
+                  <Plus className="w-8 h-8 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg text-card-foreground mb-2">Agregar Herramienta</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">Registrar una nueva herramienta</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-          <Button 
-            className="h-16 text-left justify-start bg-transparent" 
-            variant="outline"
-            onClick={() => setShowLoansModal(true)}
-          >
-            <BookOpen className="w-6 h-6 mr-3 text-orange-600" />
-            <div>
-              <div className="font-medium">Ver Préstamos</div>
-              <div className="text-sm text-muted-foreground">Gestionar préstamos activos</div>
-            </div>
-          </Button>
+          <Card className="shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer group border-0 bg-card" onClick={() => setShowLoansModal(true)}>
+            <CardContent className="p-6 text-center">
+              <div className="flex flex-col items-center space-y-4">
+                <div className="p-4 bg-accent rounded-lg group-hover:bg-accent/80 transition-colors">
+                  <BookOpen className="w-8 h-8 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg text-card-foreground mb-2">Ver Préstamos</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">Gestionar préstamos activos</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-          <Button className="h-16 text-left justify-start bg-transparent" variant="outline">
-            <Package className="w-6 h-6 mr-3 text-purple-600" />
-            <div>
-              <div className="font-medium">Reportes</div>
-              <div className="text-sm text-muted-foreground">Estadísticas y análisis</div>
-            </div>
-          </Button>
+          <Card className="shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer group border-0 bg-card" onClick={() => setShowBulkLoanModal(true)}>
+            <CardContent className="p-6 text-center">
+              <div className="flex flex-col items-center space-y-4">
+                <div className="p-4 bg-accent rounded-lg group-hover:bg-accent/80 transition-colors">
+                  <Package className="w-8 h-8 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg text-card-foreground mb-2">Préstamo Múltiple</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">Tomar varias herramientas</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Main Content Grid */}
@@ -388,7 +407,7 @@ function DashboardContent() {
       )}
 
       {/* QR Scan Result Modal */}
-      {scanResult && (
+      {scanResult && currentUser && (
         <QRScanResult
           scannedCode={scanResult.code}
           tool={scanResult.tool}
@@ -423,12 +442,21 @@ function DashboardContent() {
         isOpen={showBulkLoanModal}
         onClose={() => setShowBulkLoanModal(false)}
         tools={filteredTools}
-        currentUser={currentUser}
+        currentUser={currentUser || undefined}
         onBulkLoan={(selectedTools) => {
           handleBulkLoan(selectedTools)
           setShowBulkLoanModal(false)
         }}
       />
+
+      {/* Settings Modal */}
+      {currentUser && (
+        <SettingsModal
+          isOpen={showSettingsModal}
+          onClose={() => setShowSettingsModal(false)}
+          currentUser={currentUser}
+        />
+      )}
     </div>
   )
 }

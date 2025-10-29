@@ -32,7 +32,7 @@ const QRScanResult = React.memo<QRScanResultProps>(function QRScanResult({
     if (!tool) return null
 
     switch (tool.status) {
-      case "available":
+      case "AVAILABLE":
         return {
           color: "text-green-600",
           bg: "bg-green-100",
@@ -41,7 +41,7 @@ const QRScanResult = React.memo<QRScanResultProps>(function QRScanResult({
           description: "Esta herramienta está disponible para préstamo",
           actions: ["borrow"],
         }
-      case "borrowed":
+      case "BORROWED":
         return {
           color: "text-yellow-600",
           bg: "bg-yellow-100",
@@ -50,7 +50,7 @@ const QRScanResult = React.memo<QRScanResultProps>(function QRScanResult({
           description: "Esta herramienta está actualmente en préstamo",
           actions: ["return"],
         }
-      case "maintenance":
+      case "MAINTENANCE":
         return {
           color: "text-red-600",
           bg: "bg-red-100",
@@ -170,9 +170,9 @@ const QRScanResult = React.memo<QRScanResultProps>(function QRScanResult({
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Estado:</span>
               <Badge className={`${statusInfo?.bg} ${statusInfo?.color}`}>
-                {tool.status === "available" && "Disponible"}
-                {tool.status === "borrowed" && "Prestado"}
-                {tool.status === "maintenance" && "Mantenimiento"}
+                {tool.status === "AVAILABLE" && "Disponible"}
+                {tool.status === "BORROWED" && "Prestado"}
+                {tool.status === "MAINTENANCE" && "Mantenimiento"}
               </Badge>
             </div>
           </div>

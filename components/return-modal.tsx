@@ -40,11 +40,30 @@ export function ReturnModal({ isOpen, onClose, tool, loans, users, onConfirmRetu
     return users.find((user) => user.id === userId)
   }
 
-  const handleConfirmReturn = () => {
+  const handleConfirmReturn = async () => {
     if (!selectedLoan) return
 
-    onConfirmReturn(selectedLoan.id, returnQuantity)
-    onClose()
+    try {
+      const response = await fetch(`/api/loans/${selectedLoan.id}/return`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          returnedQuantity: returnQuantity,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Error al devolver la herramienta')
+      }
+
+      onConfirmReturn(selectedLoan.id, returnQuantity)
+      onClose()
+    } catch (error) {
+      console.error('Error:', error)
+      // You could show an error message here
+    }
   }
 
   if (!tool) return null

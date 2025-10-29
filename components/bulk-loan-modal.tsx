@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent } from "@/components/ui/card"
-import { Minus, Plus, User, BookOpen } from "lucide-react"
+import { Card, CardContent, CardDescription } from "@/components/ui/card"
+import { Minus, Plus, User, BookOpen, Search, Filter } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { Tool, User as UserType } from "@/lib/data"
 
 interface BulkLoanModalProps {
@@ -15,7 +16,10 @@ interface BulkLoanModalProps {
   onClose: () => void
   tools: Tool[]
   currentUser?: UserType
-  onBulkLoan: (selectedTools: Tool[]) => void
+  onBulkLoan: (loanData: {
+    userInfo: { name: string; lastName: string; course: string }
+    toolLoans: { toolId: string; quantity: number }[]
+  }) => void
 }
 
 export function BulkLoanModal({ isOpen, onClose, tools, currentUser, onBulkLoan }: BulkLoanModalProps) {
@@ -26,17 +30,22 @@ export function BulkLoanModal({ isOpen, onClose, tools, currentUser, onBulkLoan 
   })
 
   const [toolQuantities, setToolQuantities] = useState<Record<string, number>>({})
+  const [searchTerm, setSearchTerm] = useState("")
+  const [selectedCategory, setSelectedCategory] = useState<string>("all")
 
   // Inicializar cantidades en 0 para todas las herramientas disponibles
   useEffect(() => {
     if (isOpen) {
       const initialQuantities: Record<string, number> = {}
       tools.forEach((tool) => {
-        if (tool.status === "available" && tool.availableQuantity > 0) {
+        if (tool.status === "AVAILABLE" && tool.availableQuantity > 0) {
           initialQuantities[tool.id] = 0
         }
       })
       setToolQuantities(initialQuantities)
+      // Reset search and filters
+      setSearchTerm("")
+      setSelectedCategory("all")
     }
   }, [isOpen, tools])
 
@@ -62,13 +71,24 @@ export function BulkLoanModal({ isOpen, onClose, tools, currentUser, onBulkLoan 
   }
 
   const handleConfirm = () => {
-    const selectedTools = getSelectedTools()
-    if (selectedTools.length === 0) {
+    const toolLoans = Object.entries(toolQuantities)
+      .filter(([_, quantity]) => quantity > 0)
+      .map(([toolId, quantity]) => ({ toolId, quantity }))
+
+    if (toolLoans.length === 0) {
       alert("Por favor seleccione al menos una herramienta")
       return
     }
 
-    onBulkLoan(selectedTools)
+    if (!userInfo.name.trim() || !userInfo.lastName.trim() || !userInfo.course.trim()) {
+      alert("Por favor complete toda la información del usuario")
+      return
+    }
+
+    onBulkLoan({
+      userInfo,
+      toolLoans
+    })
 
     // Reset form
     setUserInfo({ name: "", lastName: "", course: "" })
@@ -84,12 +104,12 @@ export function BulkLoanModal({ isOpen, onClose, tools, currentUser, onBulkLoan 
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Préstamo Múltiple de Herramientas</DialogTitle>
-          <DialogDescription>
-            Seleccione las herramientas y cantidades que desea tomar prestadas
-          </DialogDescription>
+      <DialogContent className="max-w-5xl max-h-[95vh] overflow-y-auto">
+        <DialogHeader className="pb-6">
+          <DialogTitle className="text-2xl">Préstamo Múltiple de Herramientas</DialogTitle>
+          <CardDescription className="text-lg mt-2">
+            Selecciona las herramientas y cantidades que deseas tomar prestadas
+          </CardDescription>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -141,9 +161,45 @@ export function BulkLoanModal({ isOpen, onClose, tools, currentUser, onBulkLoan 
                 <Badge variant="secondary">{getTotalItems()} items seleccionados</Badge>
               </div>
 
+              {/* Filtros y búsqueda */}
+              <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                <div className="flex items-center space-x-2 flex-1">
+                  <Search className="w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar herramientas..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="flex-1"
+                  />
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Filter className="w-4 h-4 text-muted-foreground" />
+                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Categoría" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas las categorías</SelectItem>
+                      {Array.from(new Set(tools.map(tool => tool.category))).map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
               <div className="space-y-4">
                 {tools
-                  .filter((tool) => tool.status === "available" && tool.availableQuantity > 0)
+                  .filter((tool) => {
+                    const matchesSearch = tool.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                          tool.description?.toLowerCase().includes(searchTerm.toLowerCase())
+                    const matchesCategory = selectedCategory === "all" || tool.category === selectedCategory
+                    const isAvailable = tool.status === "AVAILABLE" && tool.availableQuantity > 0
+                    return matchesSearch && matchesCategory && isAvailable
+                  })
                   .map((tool) => (
                     <div key={tool.id} className="flex items-center justify-between p-4 border rounded-lg">
                       <div className="flex-1">

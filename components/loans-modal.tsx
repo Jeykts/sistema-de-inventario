@@ -208,7 +208,28 @@ export function LoansModal({ isOpen, onClose, loans, tools, users, onReturnTool 
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => onReturnTool(loan.id)}
+                          onClick={async () => {
+                            try {
+                              const response = await fetch(`/api/loans/${loan.id}/return`, {
+                                method: 'PUT',
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({
+                                  returnedQuantity: loan.quantity, // Return all quantity
+                                }),
+                              })
+
+                              if (!response.ok) {
+                                throw new Error('Error al devolver la herramienta')
+                              }
+
+                              onReturnTool(loan.id)
+                            } catch (error) {
+                              console.error('Error:', error)
+                              // You could show an error message here
+                            }
+                          }}
                           className="bg-transparent"
                         >
                           Devolver

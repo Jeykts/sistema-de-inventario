@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap');
 
 @custom-variant dark (&:is(.dark *));
 
@@ -10,36 +11,36 @@
   --card-foreground: oklch(0.15 0.02 240);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.15 0.02 240);
-  /* Updated primary color to educational blue */
-  --primary: oklch(0.55 0.15 240);
+  /* Institutional primary color - soft blue */
+  --primary: oklch(0.6 0.08 240);
   --primary-foreground: oklch(0.99 0.005 240);
-  /* Updated secondary to complement educational theme */
-  --secondary: oklch(0.95 0.02 180);
+  /* Institutional secondary - soft gray */
+  --secondary: oklch(0.95 0.01 240);
   --secondary-foreground: oklch(0.15 0.02 240);
   --muted: oklch(0.96 0.01 240);
   --muted-foreground: oklch(0.45 0.02 240);
-  /* Updated accent to educational green */
-  --accent: oklch(0.65 0.12 150);
-  --accent-foreground: oklch(0.99 0.005 240);
+  /* Institutional accent - light blue */
+  --accent: oklch(0.85 0.05 240);
+  --accent-foreground: oklch(0.15 0.02 240);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.99 0.005 240);
   --border: oklch(0.92 0.01 240);
   --input: oklch(0.96 0.01 240);
-  --ring: oklch(0.55 0.15 240);
-  --chart-1: oklch(0.55 0.15 240);
-  --chart-2: oklch(0.65 0.12 150);
-  --chart-3: oklch(0.45 0.18 30);
-  --chart-4: oklch(0.6 0.14 300);
-  --chart-5: oklch(0.7 0.16 60);
-  --radius: 0.625rem;
+  --ring: oklch(0.6 0.08 240);
+  --chart-1: oklch(0.6 0.08 240);
+  --chart-2: oklch(0.7 0.05 240);
+  --chart-3: oklch(0.8 0.03 240);
+  --chart-4: oklch(0.75 0.04 240);
+  --chart-5: oklch(0.65 0.06 240);
+  --radius: 0.375rem;
   --sidebar: oklch(0.98 0.01 240);
   --sidebar-foreground: oklch(0.15 0.02 240);
-  --sidebar-primary: oklch(0.55 0.15 240);
+  --sidebar-primary: oklch(0.6 0.08 240);
   --sidebar-primary-foreground: oklch(0.99 0.005 240);
-  --sidebar-accent: oklch(0.95 0.02 180);
+  --sidebar-accent: oklch(0.95 0.01 240);
   --sidebar-accent-foreground: oklch(0.15 0.02 240);
   --sidebar-border: oklch(0.92 0.01 240);
-  --sidebar-ring: oklch(0.55 0.15 240);
+  --sidebar-ring: oklch(0.6 0.08 240);
 }
 
 .dark {

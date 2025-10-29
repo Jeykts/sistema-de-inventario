@@ -39,27 +39,29 @@ export function LoginForm() {
   ]
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md space-y-6">
-        {/* Header */}
-        <div className="text-center space-y-2">
-          <div className="flex items-center justify-center w-16 h-16 bg-primary rounded-xl mx-auto">
-            <Package className="w-8 h-8 text-primary-foreground" />
+    <div className="min-h-screen flex items-center justify-center bg-background p-6">
+      <div className="w-full max-w-lg space-y-8">
+        {/* Header - Más grande y accesible */}
+        <div className="text-center space-y-4">
+          <div className="flex items-center justify-center w-20 h-20 bg-primary rounded-2xl mx-auto">
+            <Package className="w-10 h-10 text-primary-foreground" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground">Sistema de Inventario</h1>
-          <p className="text-muted-foreground">Colegio - Gestión de Herramientas</p>
+          <h1 className="text-3xl font-bold text-foreground">Sistema de Inventario</h1>
+          <p className="text-lg text-muted-foreground">Colegio - Gestión de Herramientas</p>
         </div>
 
-        {/* Login Form */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Iniciar Sesión</CardTitle>
-            <CardDescription>Ingresa tus credenciales para acceder al sistema</CardDescription>
+        {/* Login Form - Diseño accesible */}
+        <Card className="border-2">
+          <CardHeader className="pb-6">
+            <CardTitle className="text-2xl">Iniciar Sesión</CardTitle>
+            <CardDescription className="text-base mt-2">
+              Ingresa tus credenciales para acceder al sistema
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Correo Electrónico</Label>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-3">
+                <Label htmlFor="email" className="text-lg font-medium">Correo Electrónico</Label>
                 <Input
                   id="email"
                   type="email"
@@ -67,11 +69,12 @@ export function LoginForm() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={isLoading}
+                  className="h-12 text-lg"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Contraseña</Label>
+              <div className="space-y-3">
+                <Label htmlFor="password" className="text-lg font-medium">Contraseña</Label>
                 <Input
                   id="password"
                   type="password"
@@ -79,20 +82,21 @@ export function LoginForm() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={isLoading}
+                  className="h-12 text-lg"
                 />
               </div>
 
               {error && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
+                <Alert variant="destructive" className="border-2">
+                  <AlertCircle className="h-5 w-5" />
+                  <AlertDescription className="text-base font-medium">{error}</AlertDescription>
                 </Alert>
               )}
 
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button type="submit" className="w-full h-14 text-lg font-semibold" disabled={isLoading}>
                 {isLoading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-3 h-5 w-5 animate-spin" />
                     Iniciando sesión...
                   </>
                 ) : (
@@ -103,21 +107,60 @@ export function LoginForm() {
           </CardContent>
         </Card>
 
-        {/* Demo Credentials */}
-        <Card className="bg-muted/50">
-          <CardHeader>
-            <CardTitle className="text-sm">Credenciales de Demostración</CardTitle>
-            <CardDescription className="text-xs">
-              Usa cualquiera de estos correos (la contraseña puede ser cualquier texto)
+        {/* Demo Credentials - Más accesible */}
+        <Card className="bg-blue-50 border-2 border-blue-200">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg text-blue-900">Cuentas de Prueba</CardTitle>
+            <CardDescription className="text-base text-blue-700">
+              Puedes usar cualquiera de estas cuentas para probar el sistema
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-3">
             {demoCredentials.map((cred, index) => (
-              <div key={index} className="flex justify-between items-center text-xs">
-                <span className="font-mono bg-background px-2 py-1 rounded text-foreground">{cred.email}</span>
-                <span className="text-muted-foreground">{cred.role}</span>
+              <div key={index} className="flex justify-between items-center p-3 bg-white rounded-lg border">
+                <span className="font-mono text-sm bg-blue-100 px-3 py-2 rounded text-blue-900 font-medium">
+                  {cred.email}
+                </span>
+                <span className="text-blue-700 font-medium">{cred.role}</span>
               </div>
             ))}
+            <p className="text-sm text-blue-800 text-center mt-3">
+              <strong>Nota:</strong> La contraseña puede ser cualquier texto
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Demo Mode Button - Más prominente y accesible */}
+        <Card className="bg-green-50 border-2 border-green-300">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-xl text-green-900">¿Quieres Probar el Sistema?</CardTitle>
+            <CardDescription className="text-lg text-green-700">
+              Haz clic aquí para acceder al modo demostración
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button
+              type="button"
+              className="w-full h-16 text-xl font-bold bg-green-600 hover:bg-green-700 text-white border-2 border-green-700"
+              onClick={() => {
+                // Simulate login with demo user
+                const demoUser = demoCredentials[0] // Use first demo user
+                login(demoUser.email, 'demo123')
+              }}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-3 h-6 w-6 animate-spin" />
+                  Iniciando modo demo...
+                </>
+              ) : (
+                "🚀 Modo Demo (Sin Cámaras)"
+              )}
+            </Button>
+            <p className="text-base text-center mt-4 text-green-800 font-medium">
+              Prueba todas las funciones sin necesidad de escanear códigos QR
+            </p>
           </CardContent>
         </Card>
       </div>

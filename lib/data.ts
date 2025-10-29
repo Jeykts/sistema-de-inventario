@@ -14,10 +14,11 @@ export interface Tool {
   description: string
   category: string
   qrCode: string
-  status: "available" | "borrowed" | "maintenance"
+  status: "AVAILABLE" | "BORROWED" | "MAINTENANCE"
   location: string
   quantity: number
   availableQuantity: number
+  imageUrl?: string
   createdAt: string
   updatedAt: string
 }
@@ -26,6 +27,7 @@ export interface Loan {
   id: string
   toolId: string
   userId: string
+  quantity: number
   borrowedAt: string
   returnedAt?: string
   status: "active" | "returned" | "overdue"
@@ -104,7 +106,7 @@ export const mockTools: Tool[] = [
     description: "Taladro percutor de 650W con maletín",
     category: "Herramientas Eléctricas",
     qrCode: "TOOL-001-2024",
-    status: "available",
+    status: "AVAILABLE",
     location: "Taller A - Estante 1",
     quantity: 5,
     availableQuantity: 5,
@@ -117,7 +119,7 @@ export const mockTools: Tool[] = [
     description: "Martillo de acero con mango de madera",
     category: "Herramientas Manuales",
     qrCode: "TOOL-002-2024",
-    status: "borrowed",
+    status: "BORROWED",
     location: "Taller B - Estante 2",
     quantity: 10,
     availableQuantity: 9,
@@ -130,7 +132,7 @@ export const mockTools: Tool[] = [
     description: "Nivel de aluminio de 60cm",
     category: "Instrumentos de Medición",
     qrCode: "TOOL-003-2024",
-    status: "available",
+    status: "AVAILABLE",
     location: "Taller A - Estante 3",
     quantity: 8,
     availableQuantity: 8,
@@ -143,7 +145,7 @@ export const mockTools: Tool[] = [
     description: "Casco blanco con ajuste de correa",
     category: "Equipos de Seguridad",
     qrCode: "TOOL-004-2024",
-    status: "available",
+    status: "AVAILABLE",
     location: "Almacén - Estante Seguridad",
     quantity: 15,
     availableQuantity: 15,
@@ -157,6 +159,7 @@ export const mockLoans: Loan[] = [
     id: "1",
     toolId: "2",
     userId: "2",
+    quantity: 1,
     borrowedAt: "2024-01-20T14:30:00Z",
     status: "active",
     notes: "Para proyecto de carpintería",

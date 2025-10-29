@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Plus, X, AlertCircle, CheckCircle } from "lucide-react"
+import { Plus, X, AlertCircle, CheckCircle, Upload, Image } from "lucide-react"
 import type { Tool, Category } from "@/lib/data"
 
 interface AddToolModalProps {
@@ -26,9 +26,12 @@ export function AddToolModal({ isOpen, onClose, onAddTool, categories }: AddTool
     location: "",
     qrCode: "",
   })
+  const [selectedImage, setSelectedImage] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const generateQRCode = () => {
     const timestamp = Date.now()
@@ -77,7 +80,9 @@ export function AddToolModal({ isOpen, onClose, onAddTool, categories }: AddTool
         category: formData.category,
         location: formData.location.trim(),
         qrCode: formData.qrCode.trim(),
-        status: "available"
+        status: "AVAILABLE",
+        quantity: 1,
+        availableQuantity: 1
       }
 
       onAddTool(newTool)
@@ -223,6 +228,78 @@ export function AddToolModal({ isOpen, onClose, onAddTool, categories }: AddTool
               <p className="text-xs text-muted-foreground">
                 El código QR debe ser único para cada herramienta
               </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Imagen de la Herramienta</Label>
+              <div className="space-y-2">
+                {imagePreview && (
+                  <div className="relative">
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
+                      className="w-full h-32 object-cover rounded-lg border"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      className="absolute top-2 right-2"
+                      onClick={() => {
+                        setSelectedImage(null)
+                        setImagePreview(null)
+                      }}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isSubmitting}
+                    className="flex-1"
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    {selectedImage ? "Cambiar Imagen" : "Subir Imagen"}
+                  </Button>
+                  {selectedImage && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setSelectedImage(null)
+                        setImagePreview(null)
+                      }}
+                      disabled={isSubmitting}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) {
+                      setSelectedImage(file)
+                      const reader = new FileReader()
+                      reader.onload = (e) => {
+                        setImagePreview(e.target?.result as string)
+                      }
+                      reader.readAsDataURL(file)
+                    }
+                  }}
+                  className="hidden"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Formatos soportados: JPG, PNG, GIF. Tamaño máximo: 5MB
+                </p>
+              </div>
             </div>
 
             <div className="flex gap-2 pt-4">
